@@ -4,14 +4,15 @@ set -euo pipefail
 snapshot_dir="$HOME/.config/tmux/snapshots"
 current_session="$(tmux display-message -p '#S')"
 
-if [[ "$current_session" == *_popup ]]; then
-    tmux display-message "Skip save for popup session: $current_session"
+target_session="$(tmux list-sessions -F '#{session_name}' | awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "* " : "  "); print prefix $0; }' | fzf --prompt='save session: ' | sed 's/^..//')" || exit 0
+
+if [[ -z "$target_session" ]]; then
     exit 0
 fi
 
 mkdir -p "$snapshot_dir"
 
-snapshot_file="$snapshot_dir/${current_session}.tmux-session"
+snapshot_file="$snapshot_dir/${target_session}.tmux-session"
 tmp_file="${snapshot_file}.tmp"
 window_format="#{window_index}"$'\t'"#{window_name}"$'\t'"#{window_layout}"$'\t'"#{window_active}"
 pane_format="#{pane_current_path}"$'\t'"#{pane_active}"
@@ -20,7 +21,7 @@ b64() {
     printf '%s' "$1" | base64 -w0
 }
 
-printf 'session\t%s\n' "$(b64 "$current_session")" > "$tmp_file"
+printf 'session\t%s\n' "$(b64 "$target_session")" > "$tmp_file"
 
 window_seq=0
 
@@ -42,7 +43,7 @@ while IFS=$'\t' read -r window_index window_name_b64 window_layout_b64 window_ac
 
         pane_seq=$((pane_seq + 1))
     done < <(
-        tmux list-panes -t "=$current_session:$window_index" \
+        tmux list-panes -t "=$target_session:$window_index" \
             -F "$pane_format" | \
         while IFS=$'\t' read -r pane_path pane_active; do
             printf '%s\t%s\n' "$(b64 "$pane_path")" "$pane_active"
@@ -51,7 +52,7 @@ while IFS=$'\t' read -r window_index window_name_b64 window_layout_b64 window_ac
 
     window_seq=$((window_seq + 1))
 done < <(
-    tmux list-windows -t "=$current_session" \
+    tmux list-windows -t "=$target_session" \
         -F "$window_format" | \
     while IFS=$'\t' read -r window_index window_name window_layout window_active; do
         printf '%s\t%s\t%s\t%s\n' \
@@ -63,4 +64,4 @@ done < <(
 )
 
 mv "$tmp_file" "$snapshot_file"
-tmux display-message "Saved session snapshot: $current_session"
+tmux display-message "Saved session snapshot: $target_session"

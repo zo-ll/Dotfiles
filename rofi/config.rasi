@@ -1,0 +1,10 @@
+configuration {
+	modi: "drun,run";
+	show-icons: true;
+	icon-theme: "Tela-circle-nord-dark";
+	drun-display-format: "{name}";
+	disable-history: false;
+	sidebar-mode: false;
+}
+
+@theme "catppuccin-default"

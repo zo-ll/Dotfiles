@@ -9,7 +9,9 @@ while IFS= read -r popup_session; do
     fi
 done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
 
-target_session="$({ tmux list-sessions -F '#{session_name}' | awk '!/_popup$/'; } | fzf --prompt='session: ')" || exit 0
+current_session="$(tmux display-message -p '#S')"
+
+target_session="$(tmux list-sessions -F '#{session_name}' | awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "* " : "  "); print prefix $0; }' | fzf --prompt='session: ' | sed 's/^..//')" || exit 0
 
 if [[ -n "$target_session" ]]; then
     exec tmux switch-client -t "$target_session"
