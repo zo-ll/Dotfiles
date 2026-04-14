@@ -5,7 +5,7 @@ selected=$(nmcli -t -f ssid,in-use,signal,security dev wifi list \
     | sort -t: -k3 -rn \
     | awk -F: '!seen[$1]++' \
     | awk -F: '{if($2=="*") printf "* %s (%s%%) %s\n",$1,$3,$4; else printf "  %s (%s%%) %s\n",$1,$3,$4}' \
-    | rofi -dmenu -i -p "WiFi" -no-custom)
+    | rofi -dmenu -i -p "WiFi" -no-custom -no-show-icons)
 
 [ -z "$selected" ] && exit 0
 
