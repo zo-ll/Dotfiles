@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+cat << 'EOF'
+  tmux cheatsheet
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  global (no prefix)
+    M-h/j/k/l         navigate pane
+    M-arrow           navigate pane
+    M-H/L             prev/next window
+    M-S-arrow         prev/next window
+    M-f               popup terminal
+
+  Alt+q w  window table
+    k/q               kill window
+    n                 new window
+    r                 rename window
+
+  Alt+q s  session table
+    k/q               kill session (picker)
+    n                 new session
+    s                 save session snapshot (picker)
+    p                 restore session snapshot (picker)
+    d                 delete snapshot (picker)
+    r                 rename session
+    l                 switch session (picker)
+
+  Alt+q p  pane table
+    k/q               kill pane
+    n                 split pane (stack)
+    z                 zoom pane
+    r                 enter resize mode
+        h/j/k/l       resize (loops)
+        Esc           exit resize mode
+
+  Alt+q ?  cheatsheet
+
+  other
+    Alt+q r           reload config
+    copy mode y       yank to clipboard
+    mouse drag        copy to clipboard
+EOF
