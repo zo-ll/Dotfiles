@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+target_window="$(tmux display-message -p '#{session_name}:#{window_index}')"
+current_path="$(tmux display-message -p '#{pane_current_path}')"
+pane_count="$(tmux display-message -p '#{window_panes}')"
+
+if [[ "$pane_count" -eq 1 ]]; then
+    tmux split-window -h -t "$target_window" -c "$current_path"
+    tmux select-layout -t "$target_window" main-vertical
+    exit 0
+fi
+
+# Keep master width pinned while adding panes to stack.
+master_width="$(tmux list-panes -t "$target_window" -F '#{pane_index} #{pane_width}' | awk '$1==0{print $2}')"
+stack_pane="$(tmux list-panes -t "$target_window" -F '#{pane_index}' | awk '$1!=0{print $1; exit}')"
+
+if [[ -z "$master_width" || -z "$stack_pane" ]]; then
+    tmux split-window -v -t "$target_window" -c "$current_path"
+    tmux select-layout -t "$target_window" main-vertical
+    exit 0
+fi
+
+tmux set-window-option -t "$target_window" main-pane-width "$master_width"
+tmux split-window -v -t "${target_window}.${stack_pane}" -c "$current_path"
+tmux select-layout -t "$target_window" main-vertical

@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+snapshot_dir="$HOME/.config/tmux/snapshots"
+current_session="$(tmux display-message -p '#S')"
+
+if [[ "$current_session" == *_popup ]]; then
+    tmux display-message "Skip save for popup session: $current_session"
+    exit 0
+fi
+
+mkdir -p "$snapshot_dir"
+
+snapshot_file="$snapshot_dir/${current_session}.tmux-session"
+tmp_file="${snapshot_file}.tmp"
+window_format="#{window_index}"$'\t'"#{window_name}"$'\t'"#{window_layout}"$'\t'"#{window_active}"
+pane_format="#{pane_current_path}"$'\t'"#{pane_active}"
+
+b64() {
+    printf '%s' "$1" | base64 -w0
+}
+
+printf 'session\t%s\n' "$(b64 "$current_session")" > "$tmp_file"
+
+window_seq=0
+
+while IFS=$'\t' read -r window_index window_name_b64 window_layout_b64 window_active; do
+    printf 'window\t%s\t%s\t%s\t%s\n' \
+        "$window_seq" \
+        "$window_active" \
+        "$window_name_b64" \
+        "$window_layout_b64" >> "$tmp_file"
+
+    pane_seq=0
+
+    while IFS=$'\t' read -r pane_path_b64 pane_active; do
+        printf 'pane\t%s\t%s\t%s\t%s\n' \
+            "$window_seq" \
+            "$pane_seq" \
+            "$pane_active" \
+            "$pane_path_b64" >> "$tmp_file"
+
+        pane_seq=$((pane_seq + 1))
+    done < <(
+        tmux list-panes -t "=$current_session:$window_index" \
+            -F "$pane_format" | \
+        while IFS=$'\t' read -r pane_path pane_active; do
+            printf '%s\t%s\n' "$(b64 "$pane_path")" "$pane_active"
+        done
+    )
+
+    window_seq=$((window_seq + 1))
+done < <(
+    tmux list-windows -t "=$current_session" \
+        -F "$window_format" | \
+    while IFS=$'\t' read -r window_index window_name window_layout window_active; do
+        printf '%s\t%s\t%s\t%s\n' \
+            "$window_index" \
+            "$(b64 "$window_name")" \
+            "$(b64 "$window_layout")" \
+            "$window_active"
+    done
+)
+
+mv "$tmp_file" "$snapshot_file"
+tmux display-message "Saved session snapshot: $current_session"

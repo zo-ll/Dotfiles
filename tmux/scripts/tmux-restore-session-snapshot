@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+snapshot_file="${1:-}"
+
+if [[ -z "$snapshot_file" || ! -f "$snapshot_file" ]]; then
+    tmux display-message "Snapshot file not found"
+    exit 1
+fi
+
+decode_b64() {
+    printf '%s' "$1" | base64 -d
+}
+
+fallback_path() {
+    local path="$1"
+
+    if [[ -d "$path" ]]; then
+        printf '%s\n' "$path"
+    else
+        printf '%s\n' "$HOME"
+    fi
+}
+
+declare -a window_order=()
+declare -A window_names=()
+declare -A window_layouts=()
+declare -A window_actives=()
+declare -A pane_counts=()
+declare -A pane_paths=()
+declare -A pane_actives=()
+
+session_name=""
+
+while IFS=$'\t' read -r record_type field1 field2 field3 field4; do
+    case "$record_type" in
+        session)
+            session_name="$(decode_b64 "$field1")"
+            ;;
+        window)
+            window_order+=("$field1")
+            window_actives["$field1"]="$field2"
+            window_names["$field1"]="$(decode_b64 "$field3")"
+            window_layouts["$field1"]="$(decode_b64 "$field4")"
+            ;;
+        pane)
+            pane_paths["$field1,$field2"]="$(fallback_path "$(decode_b64 "$field4")")"
+            pane_actives["$field1,$field2"]="$field3"
+            pane_counts["$field1"]=$(( ${pane_counts["$field1"]:-0} + 1 ))
+            ;;
+    esac
+done < "$snapshot_file"
+
+if [[ -z "$session_name" || "$session_name" == *_popup || ${#window_order[@]} -eq 0 ]]; then
+    tmux display-message "Invalid session snapshot"
+    exit 1
+fi
+
+if tmux has-session -t "=$session_name" 2>/dev/null; then
+    tmux display-message "Replacing existing session: $session_name"
+    tmux kill-session -t "=$session_name"
+fi
+
+if tmux has-session -t "=${session_name}_popup" 2>/dev/null; then
+    tmux kill-session -t "=${session_name}_popup" 2>/dev/null || true
+fi
+
+first_window_seq="${window_order[0]}"
+first_window_name="${window_names["$first_window_seq"]}"
+first_window_path="${pane_paths["$first_window_seq,0"]:-$HOME}"
+
+tmux new-session -d -s "$session_name" -n "$first_window_name" -c "$first_window_path"
+
+declare -A created_window_indexes=()
+created_window_indexes["$first_window_seq"]="$(tmux list-windows -t "=$session_name" -F '#{window_index}' | awk 'NR==1 { print; exit }')"
+
+for ((i = 1; i < ${#window_order[@]}; i++)); do
+    window_seq="${window_order[$i]}"
+    window_name="${window_names["$window_seq"]}"
+    window_path="${pane_paths["$window_seq,0"]:-$HOME}"
+    created_window_indexes["$window_seq"]="$(tmux new-window -d -P -F '#{window_index}' -t "=$session_name" -n "$window_name" -c "$window_path")"
+done
+
+for window_seq in "${window_order[@]}"; do
+    window_index="${created_window_indexes["$window_seq"]}"
+    pane_count="${pane_counts["$window_seq"]:-1}"
+
+    for ((pane_seq = 1; pane_seq < pane_count; pane_seq++)); do
+        pane_path="${pane_paths["$window_seq,$pane_seq"]:-$HOME}"
+        tmux split-window -d -t "=$session_name:$window_index" -c "$pane_path"
+    done
+
+    tmux select-layout -t "=$session_name:$window_index" "${window_layouts["$window_seq"]}"
+
+    for ((pane_seq = 0; pane_seq < pane_count; pane_seq++)); do
+        if [[ "${pane_actives["$window_seq,$pane_seq"]:-0}" == "1" ]]; then
+            tmux select-pane -t "=$session_name:$window_index.$pane_seq"
+            break
+        fi
+    done
+done
+
+for window_seq in "${window_order[@]}"; do
+    if [[ "${window_actives["$window_seq"]:-0}" == "1" ]]; then
+        tmux select-window -t "=$session_name:${created_window_indexes["$window_seq"]}"
+        break
+    fi
+done
+
+tmux switch-client -t "$session_name"
+tmux display-message "Restored session snapshot: $session_name"

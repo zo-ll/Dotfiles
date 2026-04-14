@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+snapshot_dir="$HOME/.config/tmux/snapshots"
+restore_script="$HOME/.config/tmux/scripts/tmux-restore-session-snapshot"
+
+decode_b64() {
+    printf '%s' "$1" | base64 -d
+}
+
+show_preview() {
+    local snapshot_name="$1"
+    local snapshot_file="$snapshot_dir/${snapshot_name}.tmux-session"
+
+    if [[ ! -f "$snapshot_file" ]]; then
+        printf 'Snapshot not found\n'
+        exit 0
+    fi
+
+    while IFS=$'\t' read -r record_type field1 field2 field3 field4; do
+        case "$record_type" in
+            session)
+                printf 'Session: %s\n\n' "$(decode_b64 "$field1")"
+                ;;
+            window)
+                window_flag=' '
+
+                if [[ "$field2" == "1" ]]; then
+                    window_flag='*'
+                fi
+
+                printf '%s window %s\n' "$window_flag" "$(decode_b64 "$field3")"
+                ;;
+            pane)
+                pane_flag=' '
+
+                if [[ "$field3" == "1" ]]; then
+                    pane_flag='*'
+                fi
+
+                printf '  %s %s\n' "$pane_flag" "$(decode_b64 "$field4")"
+                ;;
+        esac
+    done < "$snapshot_file"
+}
+
+if [[ "${1:-}" == "--preview" ]]; then
+    show_preview "${2:-}"
+    exit 0
+fi
+
+if [[ ! -d "$snapshot_dir" ]]; then
+    tmux display-message "No saved session snapshots"
+    exit 0
+fi
+
+target_snapshot="$(
+    find "$snapshot_dir" -maxdepth 1 -type f -name '*.tmux-session' -printf '%f\n' | \
+    sed 's/\.tmux-session$//' | \
+    sort | \
+    fzf \
+        --prompt='restore session: ' \
+        --preview="$0 --preview {}" \
+        --preview-window='right:60%:wrap'
+)" || exit 0
+
+if [[ -z "$target_snapshot" ]]; then
+    exit 0
+fi
+
+exec "$restore_script" "$snapshot_dir/${target_snapshot}.tmux-session"

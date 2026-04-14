@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+current_session="$(tmux display-message -p '#S')"
+client_format="#{client_tty}"$'\t'"#{session_name}"
+
+while IFS= read -r popup_session; do
+    base_session="${popup_session%_popup}"
+
+    if ! tmux has-session -t "=$base_session" 2>/dev/null; then
+        tmux kill-session -t "=$popup_session" 2>/dev/null || true
+    fi
+done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
+
+target_session="$(tmux list-sessions -F '#{session_name}' | awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "* " : "  "); print prefix $0; }' | fzf --prompt='kill session: ' | sed 's/^..//')" || exit 0
+
+if [[ -z "$target_session" ]]; then
+    exit 0
+fi
+
+popup_session="${target_session}_popup"
+fallback_session="$(tmux list-sessions -F '#{session_name}' | awk -v target="$target_session" -v popup="$popup_session" '$0 != target && $0 != popup && !/_popup$/ { print; exit }')"
+
+if [[ -n "$fallback_session" ]]; then
+    while IFS=$'\t' read -r client_tty session_name; do
+        if [[ "$session_name" == "$target_session" || "$session_name" == "$popup_session" ]]; then
+            tmux switch-client -c "$client_tty" -t "$fallback_session" 2>/dev/null || true
+        fi
+    done < <(tmux list-clients -F "$client_format")
+fi
+
+if tmux has-session -t "=$popup_session" 2>/dev/null; then
+    tmux kill-session -t "=$popup_session"
+fi
+
+exec tmux kill-session -t "=$target_session"

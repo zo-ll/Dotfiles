@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+current_client_tty="${1:-}"
+current_session="${2:-}"
+
+if [[ -z "$current_client_tty" ]]; then
+    current_client_tty="$(tmux show-options -gv @kill_client 2>/dev/null || true)"
+fi
+
+if [[ -z "$current_session" ]]; then
+    current_session="$(tmux show-options -gv @kill_session 2>/dev/null || true)"
+fi
+
+tmux set -gu @kill_client 2>/dev/null || true
+tmux set -gu @kill_session 2>/dev/null || true
+
+if [[ -z "$current_client_tty" ]]; then
+    current_client_tty="$(tmux display-message -p '#{client_tty}')"
+fi
+
+if [[ -z "$current_session" ]]; then
+    current_session="$(tmux display-message -p '#S')"
+fi
+
+base_session="$current_session"
+
+if [[ "$base_session" == *_popup ]]; then
+    base_session="${base_session%_popup}"
+fi
+
+if [[ "$base_session" == "main" ]]; then
+    exec tmux kill-server
+fi
+
+if ! tmux has-session -t '=main' 2>/dev/null; then
+    tmux new-session -d -s main
+fi
+
+tmux switch-client -c "$current_client_tty" -t main 2>/dev/null || true
+
+popup_session="${base_session}_popup"
+client_format="#{client_tty}"$'\t'"#{session_name}"
+
+while IFS=$'\t' read -r client_tty session_name; do
+    if [[ "$session_name" == "$base_session" || "$session_name" == "$popup_session" ]]; then
+        tmux switch-client -c "$client_tty" -t main 2>/dev/null || true
+    fi
+done < <(tmux list-clients -F "$client_format")
+
+if tmux has-session -t "=$popup_session" 2>/dev/null; then
+    tmux kill-session -t "=$popup_session"
+fi
+
+if tmux has-session -t "=$base_session" 2>/dev/null; then
+    tmux kill-session -t "=$base_session"
+fi
