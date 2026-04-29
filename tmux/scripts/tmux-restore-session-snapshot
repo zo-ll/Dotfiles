@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+no_switch=0
+
+if [[ "${1:-}" == "--no-switch" ]]; then
+    no_switch=1
+    shift
+fi
+
 snapshot_file="${1:-}"
 
 if [[ -z "$snapshot_file" || ! -f "$snapshot_file" ]]; then
@@ -107,5 +114,7 @@ for window_seq in "${window_order[@]}"; do
     fi
 done
 
-tmux switch-client -t "$session_name"
-tmux display-message "Restored session snapshot: $session_name"
+if [[ "$no_switch" -eq 0 ]]; then
+    tmux switch-client -t "$session_name"
+    tmux display-message "Restored session snapshot: $session_name"
+fi

@@ -54,18 +54,37 @@ if [[ ! -d "$snapshot_dir" ]]; then
     exit 0
 fi
 
-target_snapshot="$(
+mapfile -t target_snapshots < <(
     find "$snapshot_dir" -maxdepth 1 -type f -name '*.tmux-session' -printf '%f\n' | \
     sed 's/\.tmux-session$//' | \
     sort | \
     fzf \
         --prompt='restore session: ' \
+        --multi \
+        --bind='tab:toggle,btab:toggle' \
         --preview="$0 --preview {}" \
         --preview-window='right:60%:wrap'
-)" || exit 0
+) || exit 0
 
-if [[ -z "$target_snapshot" ]]; then
+if [[ ${#target_snapshots[@]} -eq 0 ]]; then
     exit 0
 fi
 
-exec "$restore_script" "$snapshot_dir/${target_snapshot}.tmux-session"
+restored_count=0
+last_session=''
+for target_snapshot in "${target_snapshots[@]}"; do
+    [[ -z "$target_snapshot" ]] && continue
+    "$restore_script" --no-switch "$snapshot_dir/${target_snapshot}.tmux-session"
+    restored_count=$((restored_count + 1))
+    last_session="$target_snapshot"
+done
+
+if [[ -n "$last_session" ]]; then
+    tmux switch-client -t "$last_session" 2>/dev/null || true
+fi
+
+if [[ "$restored_count" -eq 1 ]]; then
+    tmux display-message "Restored session snapshot: $last_session"
+elif [[ "$restored_count" -gt 1 ]]; then
+    tmux display-message "Restored $restored_count session snapshots"
+fi

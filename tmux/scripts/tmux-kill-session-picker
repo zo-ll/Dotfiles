@@ -12,25 +12,72 @@ while IFS= read -r popup_session; do
     fi
 done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
 
-target_session="$(tmux list-sessions -F '#{session_name}' | awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "* " : "  "); print prefix $0; }' | fzf --prompt='kill session: ' | sed 's/^..//')" || exit 0
+mapfile -t target_sessions < <(
+    tmux list-sessions -F '#{session_name}' | \
+    awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "* " : "  "); print prefix $0; }' | \
+    fzf \
+        --prompt='kill session: ' \
+        --multi \
+        --bind='tab:toggle,btab:toggle' | \
+    sed 's/^..//'
+) || exit 0
 
-if [[ -z "$target_session" ]]; then
+if [[ ${#target_sessions[@]} -eq 0 ]]; then
     exit 0
 fi
 
-popup_session="${target_session}_popup"
-fallback_session="$(tmux list-sessions -F '#{session_name}' | awk -v target="$target_session" -v popup="$popup_session" '$0 != target && $0 != popup && !/_popup$/ { print; exit }')"
+killed_count=0
+last_killed=''
 
-if [[ -n "$fallback_session" ]]; then
-    while IFS=$'\t' read -r client_tty session_name; do
-        if [[ "$session_name" == "$target_session" || "$session_name" == "$popup_session" ]]; then
-            tmux switch-client -c "$client_tty" -t "$fallback_session" 2>/dev/null || true
+declare -A target_map=()
+for s in "${target_sessions[@]}"; do
+    [[ -n "$s" ]] && target_map["$s"]=1
+done
+
+pick_fallback_session() {
+    local best_session=''
+    local best_last_attached=-1
+
+    while IFS=$'\t' read -r s_name s_last_attached; do
+        [[ -z "$s_name" || "$s_name" == *_popup ]] && continue
+        [[ -n "${target_map[$s_name]:-}" ]] && continue
+
+        if [[ "$s_last_attached" -gt "$best_last_attached" ]]; then
+            best_last_attached="$s_last_attached"
+            best_session="$s_name"
         fi
-    done < <(tmux list-clients -F "$client_format")
-fi
+    done < <(tmux list-sessions -F '#{session_name}'$'\t''#{session_last_attached}')
 
-if tmux has-session -t "=$popup_session" 2>/dev/null; then
-    tmux kill-session -t "=$popup_session"
-fi
+    printf '%s\n' "$best_session"
+}
 
-exec tmux kill-session -t "=$target_session"
+fallback_session="$(pick_fallback_session)"
+
+for target_session in "${target_sessions[@]}"; do
+    [[ -z "$target_session" ]] && continue
+
+    popup_session="${target_session}_popup"
+
+    if [[ -n "$fallback_session" ]]; then
+        while IFS=$'\t' read -r client_tty session_name; do
+            if [[ "$session_name" == "$target_session" || "$session_name" == "$popup_session" ]]; then
+                tmux switch-client -c "$client_tty" -t "$fallback_session" 2>/dev/null || true
+            fi
+        done < <(tmux list-clients -F "$client_format")
+    fi
+
+    if tmux has-session -t "=$popup_session" 2>/dev/null; then
+        tmux kill-session -t "=$popup_session" 2>/dev/null || true
+    fi
+
+    if tmux kill-session -t "=$target_session" 2>/dev/null; then
+        killed_count=$((killed_count + 1))
+        last_killed="$target_session"
+    fi
+done
+
+if [[ "$killed_count" -eq 1 ]]; then
+    tmux display-message "Killed session: $last_killed"
+elif [[ "$killed_count" -gt 1 ]]; then
+    tmux display-message "Killed $killed_count sessions"
+fi

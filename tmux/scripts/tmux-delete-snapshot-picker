@@ -53,19 +53,25 @@ if [[ ! -d "$snapshot_dir" ]]; then
     exit 0
 fi
 
-target_snapshot="$(
+mapfile -t target_snapshots < <(
     find "$snapshot_dir" -maxdepth 1 -type f -name '*.tmux-session' -printf '%f\n' | \
     sed 's/\.tmux-session$//' | \
     sort | \
     fzf \
         --prompt='delete snapshot: ' \
+        --multi \
+        --bind='tab:toggle,btab:toggle' \
         --preview="$0 --preview {}" \
         --preview-window='right:60%:wrap'
-)" || exit 0
+) || exit 0
 
-if [[ -z "$target_snapshot" ]]; then
+if [[ ${#target_snapshots[@]} -eq 0 ]]; then
     exit 0
 fi
 
-rm "$snapshot_dir/${target_snapshot}.tmux-session"
-tmux display-message "Deleted snapshot: $target_snapshot"
+for target_snapshot in "${target_snapshots[@]}"; do
+    [[ -z "$target_snapshot" ]] && continue
+    rm -f "$snapshot_dir/${target_snapshot}.tmux-session"
+done
+
+tmux display-message "Deleted ${#target_snapshots[@]} snapshot(s)"
