@@ -1,0 +1,43 @@
+# Mako — Catppuccin Mocha
+
+sort=-time
+layer=overlay
+
+# Auto-dismiss after 3 seconds
+default-timeout=3000
+
+# Ignore these apps
+ignore-timeout=1
+# Persistent notifications (volume, brightness, etc.)
+
+# Dimensions
+width=360
+height=160
+margin=12
+padding=16
+border-radius=12
+
+# Font
+font=JetBrainsMono Nerd Font 11
+
+# Colors — Catppuccin Mocha
+background-color=#1e1e2edd
+text-color=#cdd6f4
+border-color=#cba6f7
+
+# Progress bar (for timeout indicator)
+[progress]
+background-color=#cba6f7ff
+color=#1e1e2edd
+
+# Critical notifications
+[urgent]
+background-color=#f38ba8dd
+text-color=#1e1e2e
+border-color=#f38ba8
+default-timeout=0
+
+# Low priority
+[low]
+background-color=#313244dd
+border-color=#45475a

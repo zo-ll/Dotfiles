@@ -1,0 +1,12 @@
+#!/bin/bash
+# Powermenu: logout / reboot / shutdown via wofi
+
+choices="Logout\nReboot\nShutdown"
+
+chosen=$(echo -e "$choices" | wofi --dmenu --prompt "Power" --insensitive)
+
+case "$chosen" in
+    Logout)   swaymsg exit ;;
+    Reboot)   systemctl reboot ;;
+    Shutdown) systemctl poweroff ;;
+esac

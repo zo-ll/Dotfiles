@@ -1,0 +1,260 @@
+// Niri config — ported from sway setup
+// Fedora 44 KDE + NVIDIA
+// Format: KDL (https://kdl.dev)
+// Docs:  https://yalter.github.io/niri/Configuration:-Overview
+
+
+// ═══════════════════════════════════════════
+//  Startup programs
+// ═══════════════════════════════════════════
+
+spawn-sh-at-startup "WAYLAND_DISPLAY=wayland-1 waybar"
+spawn-at-startup "mako"
+// Clipboard sync: keep primary and clipboard in sync
+spawn-sh-at-startup "wl-paste --type text --watch wl-copy"
+
+// Qt apps: force Wayland native (not XWayland)
+spawn-at-startup "systemctl" "--user" "set-environment" "QT_QPA_PLATFORM=wayland"
+spawn-at-startup "systemctl" "--user" "set-environment" "QT_WAYLAND_DISABLE_WINDOWDECORATIONS=1"
+spawn-at-startup "systemctl" "--user" "import-environment" "QT_QPA_PLATFORM" "QT_WAYLAND_DISABLE_WINDOWDECORATIONS"
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+// Disable the important hotkeys popup on startup
+hotkey-overlay {
+    skip-at-startup
+}
+
+
+// ═══════════════════════════════════════════
+//  Input
+// ═══════════════════════════════════════════
+
+input {
+    keyboard {
+        xkb {
+            layout "it"
+            // Swap Caps Lock and Escape
+            options "caps:swapescape"
+        }
+        numlock
+    }
+
+    touchpad {
+        tap
+        natural-scroll
+    }
+
+    // Warp mouse to focus when switching windows
+    warp-mouse-to-focus
+
+    // Focus windows on mouse hover
+    focus-follows-mouse max-scroll-amount="0%"
+}
+
+
+// ═══════════════════════════════════════════
+//  Output / display
+// ═══════════════════════════════════════════
+
+// Run `niri msg outputs` inside niri to find your display names.
+// output "eDP-1" {
+//     mode "1920x1080@60"
+//     scale 1
+// }
+
+
+// ═══════════════════════════════════════════
+//  Layout
+// ═══════════════════════════════════════════
+
+layout {
+    gaps 4
+
+    // Center the focused column
+    center-focused-column "on-overflow"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    default-column-width { proportion 1.0; }
+
+    focus-ring {
+        width 2
+        active-color "#cba6f7"
+        inactive-color "#45475a"
+    }
+
+    border {
+        off
+    }
+}
+
+// Omit client-side decorations (CSD) when possible
+prefer-no-csd
+
+
+// ═══════════════════════════════════════════
+//  Animations
+// ═══════════════════════════════════════════
+
+// animations {
+//     off
+// }
+
+
+// ═══════════════════════════════════════════
+//  Window rules
+// ═══════════════════════════════════════════
+
+window-rule {
+    match app-id=r#"^org\.wezfurlong\.wezterm$"#
+    default-column-width {}
+}
+
+window-rule {
+    match app-id=r#"firefox$"# title="^Picture-in-Picture$"
+    open-floating true
+}
+
+// Block password managers from screen capture
+/-window-rule {
+    match app-id=r#"^org\.keepassxc\.KeePassXC$"#
+    block-out-from "screen-capture"
+}
+
+
+// ═══════════════════════════════════════════
+//  Key bindings
+// ═══════════════════════════════════════════
+
+binds {
+
+    // ── Session ──────────────────────────
+
+    Mod+Return   { spawn "alacritty"; }
+    Mod+D        { spawn "wofi" "--show" "drun"; }
+    Mod+Q        { close-window; }
+    Mod+Shift+F  { spawn "dolphin"; }
+    Mod+Shift+Q  { spawn-sh "~/.config/niri/scripts/powermenu"; }
+    Mod+Shift+E  { quit; }
+    // niri auto-reloads config on save — no reload keybind needed
+    Ctrl+Alt+Delete { quit; }
+
+    // ── Hotkey overlay ──────────────────
+
+    Mod+Shift+Slash { show-hotkey-overlay; }
+
+    // ── Focus navigation ────────────────
+
+    Mod+Left  { focus-column-left; }
+    Mod+Down  { focus-window-down; }
+    Mod+Up    { focus-window-up; }
+    Mod+Right { focus-column-right; }
+    Mod+H     { focus-column-left; }
+    Mod+J     { focus-window-down; }
+    Mod+K     { focus-window-up; }
+    Mod+L     { focus-column-right; }
+
+    // ── Move windows / columns ──────────
+
+    Mod+Ctrl+Left  { move-column-left; }
+    Mod+Ctrl+Down  { move-window-down; }
+    Mod+Ctrl+Up    { move-window-up; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+H     { move-column-left; }
+    Mod+Ctrl+J     { move-window-down; }
+    Mod+Ctrl+K     { move-window-up; }
+    Mod+Ctrl+L     { move-column-right; }
+
+    // ── Workspaces ──────────────────────
+
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
+    Mod+0 { focus-workspace 10; }
+
+    Mod+Ctrl+1 { move-column-to-workspace 1; }
+    Mod+Ctrl+2 { move-column-to-workspace 2; }
+    Mod+Ctrl+3 { move-column-to-workspace 3; }
+    Mod+Ctrl+4 { move-column-to-workspace 4; }
+    Mod+Ctrl+5 { move-column-to-workspace 5; }
+    Mod+Ctrl+6 { move-column-to-workspace 6; }
+    Mod+Ctrl+7 { move-column-to-workspace 7; }
+    Mod+Ctrl+8 { move-column-to-workspace 8; }
+    Mod+Ctrl+9 { move-column-to-workspace 9; }
+    Mod+Ctrl+0 { move-column-to-workspace 10; }
+
+    Mod+U { focus-workspace-down; }
+    Mod+I { focus-workspace-up; }
+    Mod+Ctrl+U { move-column-to-workspace-down; }
+    Mod+Ctrl+I { move-column-to-workspace-up; }
+
+    // Scroll workspaces with mouse wheel
+    Mod+WheelScrollDown      cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp        cooldown-ms=150 { focus-workspace-up; }
+    Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
+    Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
+
+    // ── Layout controls ─────────────────
+
+    Mod+W       { toggle-column-tabbed-display; }
+    Mod+V       { toggle-window-floating; }
+    Mod+Shift+V { switch-focus-between-floating-and-tiling; }
+    Mod+F       { maximize-column; }
+    // Mod+Shift+F is now file manager (see session section above)
+    Mod+R       { switch-preset-column-width; }
+    Mod+C       { center-column; }
+
+    // Finer width / height adjustments
+    Mod+Minus       { set-column-width "-10%"; }
+    Mod+Equal       { set-column-width "+10%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
+
+    // ── Overview ────────────────────────
+
+    Mod+O repeat=false { toggle-overview; }
+
+    // ── Screenshots ─────────────────────
+
+    Print             { screenshot; }
+    Ctrl+Print        { screenshot-screen; }
+    Alt+Print         { screenshot-window; }
+    Mod+Shift+S       { screenshot-screen; }
+
+    // ── Media keys ──────────────────────
+
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.05+ -l 1.0"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.05-"; }
+    XF86AudioMute        allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    XF86AudioMicMute     allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
+
+    XF86AudioPlay  allow-when-locked=true { spawn-sh "playerctl play-pause"; }
+    XF86AudioNext  allow-when-locked=true { spawn-sh "playerctl next"; }
+    XF86AudioPrev  allow-when-locked=true { spawn-sh "playerctl previous"; }
+
+    XF86MonBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "set" "+10%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "set" "10%-"; }
+
+    // ── Lock screen ─────────────────────
+
+    // Mod+Shift+L allow-when-locked=true { spawn "swaylock" "-f"; }
+
+    // ── Power off monitors ──────────────
+
+    Mod+Shift+P { power-off-monitors; }
+
+    // ── Escape hatch ────────────────────
+
+    Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+}

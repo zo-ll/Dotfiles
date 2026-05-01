@@ -1,0 +1,136 @@
+// -*- mode: jsonc -*-
+// Waybar config — niri + Catppuccin Mocha
+{
+    "layer": "top",
+    "height": 32,
+    "exclusive": true,
+    "passthrough": false,
+    "spacing": 4,
+    "margin-top": 0,
+    "margin-bottom": 0,
+    "margin-left": 0,
+    "margin-right": 0,
+
+    "modules-left": [
+        "clock",
+        "niri/workspaces"
+    ],
+    "modules-center": [
+        "niri/window"
+    ],
+    "modules-right": [
+        "network",
+        "pulseaudio",
+        "backlight",
+        "cpu",
+        "memory",
+        "temperature",
+        "battery",
+        "tray"
+    ],
+
+    // ── Workspaces ──────────────────────────────
+
+    "niri/workspaces": {
+        "format": "{icon}",
+        "format-icons": {
+            "focused": "●",
+            "active": "●",
+            "default": "○"
+        },
+        "disable-click": false,
+        "current-only": false,
+        "all-outputs": false
+    },
+
+    // ── Window title ────────────────────────────
+
+    "niri/window": {
+        "format": "{title}",
+        "max-length": 80,
+        "separate-outputs": true,
+        "rewrite": {
+            "(.*) — Mozilla Firefox": " $1",
+            "(.*) - fish": " $1",
+            "(.*) - zsh": " $1",
+            "(.*) - bash": " $1"
+        }
+    },
+
+    // ── Clock ───────────────────────────────────
+
+    "clock": {
+        "format": "{:%a %d %b  %H:%M}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt>{calendar}</tt>"
+    },
+
+    // ── CPU ─────────────────────────────────────
+
+    "cpu": {
+        "format": " {usage}%",
+        "tooltip": false
+    },
+
+    // ── Memory ──────────────────────────────────
+
+    "memory": {
+        "format": " {}%"
+    },
+
+    // ── Temperature ─────────────────────────────
+
+    "temperature": {
+        "critical-threshold": 85,
+        "format": " {temperatureC}°C",
+        "format-critical": " {temperatureC}°C  "
+    },
+
+    // ── Backlight ───────────────────────────────
+
+    "backlight": {
+        "format": " {percent}%",
+        "format-icons": ["○", "◐", "●"]
+    },
+
+    // ── Network ─────────────────────────────────
+
+    "network": {
+        "format-wifi": " {signalStrength}%",
+        "format-ethernet": " {ipaddr}",
+        "format-disconnected": " ⚠",
+        "tooltip-format": "{ifname}: {essid} ({signalStrength}%)"
+    },
+
+    // ── PulseAudio ──────────────────────────────
+
+    "pulseaudio": {
+        "format": "{volume}% {icon}",
+        "format-muted": " {icon}",
+        "format-source": " {volume}%",
+        "format-source-muted": "",
+        "format-icons": {
+            "default": ["🔈", "🔉", "🔊"]
+        },
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-click-right": "pavucontrol"
+    },
+
+    // ── Battery ─────────────────────────────────
+
+    "battery": {
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{capacity}% {icon}",
+        "format-charging": "{capacity}% ",
+        "format-icons": ["▁", "▃", "▅", "▇", "█"]
+    },
+
+    // ── Tray ────────────────────────────────────
+
+    "tray": {
+        "spacing": 8,
+        "icon-size": 18
+    }
+}

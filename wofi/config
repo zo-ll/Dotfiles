@@ -1,0 +1,22 @@
+# Wofi config — Catppuccin Mocha
+# Launched by niri with: wofi --show drun
+
+# Modes: drun, run, dmenu
+show=drun
+
+# Prompt
+prompt=Run
+
+# Dimensions (0 = auto)
+width=480
+height=320
+
+# Positioning
+location=center
+anchor=center
+
+# No search results message
+no_actions=true
+
+# GTK theme (uses our style.css)
+# Wofi picks up ~/.config/wofi/style.css automatically
