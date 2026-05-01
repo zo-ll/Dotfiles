@@ -19,6 +19,7 @@
         "niri/window"
     ],
     "modules-right": [
+        "power-profiles-daemon",
         "network",
         "pulseaudio",
         "backlight",
@@ -132,5 +133,14 @@
     "tray": {
         "spacing": 8,
         "icon-size": 18
+    },
+
+    "power-profiles-daemon": {
+        "format": "{icon}",
+        "format-icons": {
+            "performance": "▰",
+            "balanced": "◐",
+            "power-saver": "▱"
+        }
     }
 }
