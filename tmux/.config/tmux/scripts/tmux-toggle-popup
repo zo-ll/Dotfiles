@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+current_session="${1:-$(tmux display-message -p '#S')}"
+current_path="${2:-$(tmux display-message -p '#{pane_current_path}')}"
+
+if [[ "$current_session" == *_popup ]]; then
+    base_session="${current_session%_popup}"
+
+    if ! tmux has-session -t "=$base_session" 2>/dev/null; then
+        tmux kill-session -t "=$current_session" 2>/dev/null || true
+    fi
+
+    exec tmux detach-client
+fi
+
+popup_session="${current_session}_popup"
+
+exec tmux display-popup -E -h 70% -w 80% -d "$current_path" \
+    "tmux new-session -A -s '$popup_session' -c '$current_path'"

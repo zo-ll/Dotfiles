@@ -136,7 +136,6 @@
     },
 
     "power-profiles-daemon": {
-        "on-click": "~/.config/niri/scripts/power-profile",
         "format": "{icon}",
         "format-icons": {
             "performance": "▰",

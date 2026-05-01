@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+while IFS= read -r popup_session; do
+    base_session="${popup_session%_popup}"
+
+    if ! tmux has-session -t "=$base_session" 2>/dev/null; then
+        tmux kill-session -t "=$popup_session" 2>/dev/null || true
+    fi
+done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
+
+current_session="$(tmux display-message -p '#S')"
+
+target_session="$(
+    tmux list-sessions -F '#{session_name}' | \
+    awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "* " : "  "); print prefix $0; }' | \
+    fzf \
+        --prompt='session: ' | \
+    sed 's/^..//'
+)" || exit 0
+
+if [[ -n "$target_session" ]]; then
+    exec tmux switch-client -t "$target_session"
+fi
