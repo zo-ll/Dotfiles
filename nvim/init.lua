@@ -9,12 +9,23 @@ vim.opt.signcolumn = "yes"
 
 vim.pack.add({
   { src = "https://github.com/nvim-lua/plenary.nvim" },
-  { src = "https://github.com/nvim-telescope/telescope.nvim", version = "0.1.x" },
+  { src = "https://github.com/nvim-telescope/telescope.nvim" },
   { src = "https://github.com/nvim-treesitter/nvim-treesitter" },
   { src = "https://github.com/neovim/nvim-lspconfig" },
+  { src = "https://github.com/folke/tokyonight.nvim" },
+  { src = "https://github.com/catppuccin/nvim", name = "catppuccin" },
+  { src = "https://github.com/shaunsingh/nord.nvim" },
 }, { load = true, confirm = false })
 
-require("telescope").setup({})
+vim.cmd.colorscheme("tokyonight")
+
+require("telescope").setup({
+  defaults = {
+    preview = {
+      treesitter = false,
+    },
+  },
+})
 vim.keymap.set("n", "<leader>ff", "<cmd>Telescope find_files<cr>")
 vim.keymap.set("n", "<leader>fg", "<cmd>Telescope live_grep<cr>")
 vim.keymap.set("n", "<leader>fb", "<cmd>Telescope buffers<cr>")
