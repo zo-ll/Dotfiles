@@ -42,7 +42,7 @@ require("lazy").setup({
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
     config = function()
-      require("nvim-treesitter.configs").setup({
+      require("nvim-treesitter").setup({
         ensure_installed = {
           "c",
           "cpp",
@@ -135,29 +135,31 @@ require("lazy").setup({
   {
     "neovim/nvim-lspconfig",
     config = function()
-      local lspconfig = require("lspconfig")
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-      local on_attach = function(_, bufnr)
-        local map = function(mode, lhs, rhs, desc)
-          vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
-        end
-        map("n", "gd", vim.lsp.buf.definition, "Go to definition")
-        map("n", "gr", vim.lsp.buf.references, "References")
-        map("n", "K", vim.lsp.buf.hover, "Hover")
-        map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
-        map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
-        map("n", "[d", vim.diagnostic.goto_prev, "Prev diagnostic")
-        map("n", "]d", vim.diagnostic.goto_next, "Next diagnostic")
-      end
+      vim.api.nvim_create_autocmd("LspAttach", {
+        callback = function(args)
+          local bufnr = args.buf
+          local map = function(mode, lhs, rhs, desc)
+            vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, desc = desc })
+          end
+          map("n", "gd", vim.lsp.buf.definition, "Go to definition")
+          map("n", "gr", vim.lsp.buf.references, "References")
+          map("n", "K", vim.lsp.buf.hover, "Hover")
+          map("n", "<leader>rn", vim.lsp.buf.rename, "Rename")
+          map("n", "<leader>ca", vim.lsp.buf.code_action, "Code action")
+          map("n", "[d", vim.diagnostic.goto_prev, "Prev diagnostic")
+          map("n", "]d", vim.diagnostic.goto_next, "Next diagnostic")
+        end,
+      })
 
-      lspconfig.intelephense.setup({ on_attach = on_attach, capabilities = capabilities })
-      if lspconfig.ts_ls then
-        lspconfig.ts_ls.setup({ on_attach = on_attach, capabilities = capabilities })
-      elseif lspconfig.tsserver then
-        lspconfig.tsserver.setup({ on_attach = on_attach, capabilities = capabilities })
-      end
-      lspconfig.clangd.setup({ on_attach = on_attach, capabilities = capabilities })
+      vim.lsp.config("intelephense", { capabilities = capabilities })
+      vim.lsp.config("ts_ls", { capabilities = capabilities })
+      vim.lsp.config("clangd", { capabilities = capabilities })
+
+      vim.lsp.enable("intelephense")
+      vim.lsp.enable("ts_ls")
+      vim.lsp.enable("clangd")
     end,
   },
 })
