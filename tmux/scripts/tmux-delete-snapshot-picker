@@ -65,10 +65,11 @@ mapfile -t target_snapshots < <(
     sort | \
     fzf \
         --prompt='delete snapshot: ' \
+        --border \
         --multi \
         --bind='tab:toggle,btab:toggle' \
         --preview="$0 --preview {}" \
-        --preview-window='right:55%:wrap'
+        --preview-window='right:55%:border-left:wrap'
 ) || exit 0
 
 if [[ ${#target_snapshots[@]} -eq 0 ]]; then
