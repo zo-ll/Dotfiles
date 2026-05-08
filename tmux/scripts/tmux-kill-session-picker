@@ -18,6 +18,7 @@ mapfile -t target_lines < <(
     awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); printf "%s\t%s\t%3s\t%3s\t%s\n", $1, marker, $3, $2, $1; }' | \
     fzf \
         --prompt='kill session: ' \
+        --layout=reverse-list \
         --border \
         --multi \
         --bind='tab:toggle,btab:toggle' \

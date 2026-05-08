@@ -65,6 +65,7 @@ mapfile -t target_snapshots < <(
     sort | \
     fzf \
         --prompt='delete snapshot: ' \
+        --layout=reverse-list \
         --border \
         --multi \
         --bind='tab:toggle,btab:toggle' \

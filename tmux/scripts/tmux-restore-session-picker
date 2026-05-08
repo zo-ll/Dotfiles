@@ -70,6 +70,7 @@ mapfile -t target_snapshots < <(
     sort | \
     fzf \
         --prompt='restore session: ' \
+        --layout=reverse-list \
         --border \
         --multi \
         --bind='tab:toggle,btab:toggle' \
