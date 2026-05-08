@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="${1:-}"
+raw_session="${2:-}"
+snapshot_dir="$HOME/.config/tmux/snapshots"
+
+normalize_session() {
+    local value="$1"
+
+    if [[ "$value" == *$'\t'* ]]; then
+        value="${value#*$'\t'}"
+    fi
+
+    if [[ ${#value} -ge 2 ]]; then
+        case "${value:0:2}" in
+            "* "|"  ") value="${value:2}" ;;
+        esac
+    fi
+
+    printf '%s\n' "$value"
+}
+
+show_live_session() {
+    local session="$1"
+    local clients popup_exists
+
+    if ! tmux has-session -t "=$session" 2>/dev/null; then
+        printf 'Session not found: %s\n' "$session"
+        exit 0
+    fi
+
+    clients="$(( $(tmux list-clients -F '#{session_name}' 2>/dev/null | awk -v target="$session" '$0 == target { count++ } END { print count + 0 }') ))"
+    if tmux has-session -t "=${session}_popup" 2>/dev/null; then
+        popup_exists='yes'
+    else
+        popup_exists='no'
+    fi
+
+    printf 'Session: %s\n' "$session"
+    printf 'Attached clients: %s\n' "$clients"
+    printf 'Popup sibling: %s\n\n' "$popup_exists"
+
+    while IFS=$'\t' read -r window_index window_active window_name; do
+        window_flag=' '
+        if [[ "$window_active" == "1" ]]; then
+            window_flag='*'
+        fi
+
+        printf '%s window %s:%s\n' "$window_flag" "$window_index" "$window_name"
+
+        while IFS=$'\t' read -r pane_index pane_active pane_command pane_path; do
+            pane_flag=' '
+            if [[ "$pane_active" == "1" ]]; then
+                pane_flag='*'
+            fi
+
+            printf '  %s pane %s  %-12s %s\n' "$pane_flag" "$pane_index" "$pane_command" "$pane_path"
+        done < <(
+            tmux list-panes -t "=$session:$window_index" \
+                -F '#{pane_index}'$'\t''#{pane_active}'$'\t''#{pane_current_command}'$'\t''#{pane_current_path}'
+        )
+
+        printf '\n'
+    done < <(
+        tmux list-windows -t "=$session" \
+            -F '#{window_index}'$'\t''#{window_active}'$'\t''#{window_name}'
+    )
+}
+
+session="$(normalize_session "$raw_session")"
+
+if [[ -z "$mode" || -z "$session" ]]; then
+    printf 'Usage: %s <switch|kill|save> <session>\n' "$0"
+    exit 0
+fi
+
+case "$mode" in
+    switch)
+        printf 'Will switch client to session: %s\n\n' "$session"
+        show_live_session "$session"
+        ;;
+    kill)
+        printf 'Will kill session: %s\n' "$session"
+        printf 'Also kills popup sibling: %s_popup (if it exists)\n\n' "$session"
+        show_live_session "$session"
+        ;;
+    save)
+        printf 'Will save snapshot for session: %s\n' "$session"
+        printf 'Snapshot file: %s/%s.tmux-session\n\n' "$snapshot_dir" "$session"
+        show_live_session "$session"
+        ;;
+    *)
+        printf 'Unknown mode: %s\n' "$mode"
+        exit 0
+        ;;
+esac

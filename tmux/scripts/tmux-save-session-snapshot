@@ -3,17 +3,20 @@ set -euo pipefail
 
 snapshot_dir="$HOME/.config/tmux/snapshots"
 current_session="$(tmux display-message -p '#S')"
+preview_script="$HOME/.config/tmux/scripts/tmux-session-preview"
 
-target_session="$(
+target_line="$(
     tmux list-sessions -F '#{session_name}' | \
-    awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "* " : "  "); print prefix $0; }' | \
+    awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "*" : " "); print prefix "\t" $0; }' | \
     fzf \
         --prompt='save session: ' \
-        --multi \
-        --bind='tab:toggle,btab:toggle' | \
-    sed 's/^..//' | \
-    head -n1
+        --delimiter=$'\t' \
+        --with-nth=1,2 \
+        --preview="$preview_script save {}" \
+        --preview-window='right:55%:wrap'
 )" || exit 0
+
+target_session="${target_line#*$'\t'}"
 
 if [[ -z "$target_session" ]]; then
     exit 0

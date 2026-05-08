@@ -11,6 +11,7 @@ decode_b64() {
 show_preview() {
     local snapshot_name="$1"
     local snapshot_file="$snapshot_dir/${snapshot_name}.tmux-session"
+    local session_name=''
 
     if [[ ! -f "$snapshot_file" ]]; then
         printf 'Snapshot not found\n'
@@ -20,7 +21,14 @@ show_preview() {
     while IFS=$'\t' read -r record_type field1 field2 field3 field4; do
         case "$record_type" in
             session)
-                printf 'Session: %s\n\n' "$(decode_b64 "$field1")"
+                session_name="$(decode_b64 "$field1")"
+                printf 'Will restore snapshot: %s\n' "$snapshot_name"
+                printf 'Target session: %s\n' "$session_name"
+                if tmux has-session -t "=$session_name" 2>/dev/null; then
+                    printf 'Existing live session will be replaced\n\n'
+                else
+                    printf 'Creates a new live session\n\n'
+                fi
                 ;;
             window)
                 window_flag=' '
@@ -63,7 +71,7 @@ mapfile -t target_snapshots < <(
         --multi \
         --bind='tab:toggle,btab:toggle' \
         --preview="$0 --preview {}" \
-        --preview-window='right:60%:wrap'
+        --preview-window='right:55%:wrap'
 ) || exit 0
 
 if [[ ${#target_snapshots[@]} -eq 0 ]]; then
