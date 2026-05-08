@@ -9,7 +9,7 @@ normalize_session() {
     local value="$1"
 
     if [[ "$value" == *$'\t'* ]]; then
-        value="${value#*$'\t'}"
+        value="${value%%$'\t'*}"
     fi
 
     if [[ ${#value} -ge 2 ]]; then

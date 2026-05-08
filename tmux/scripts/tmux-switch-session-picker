@@ -14,17 +14,17 @@ done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
 current_session="$(tmux display-message -p '#S')"
 
 target_line="$(
-    tmux list-sessions -F '#{session_name}' | \
-    awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "*" : " "); print prefix "\t" $0; }' | \
+    tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
+    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); printf "%s\t%s\t%3s\t%3s\t%s\n", $1, marker, $3, $2, $1; }' | \
     fzf \
         --prompt='session: ' \
         --delimiter=$'\t' \
-        --with-nth=1,2 \
+        --with-nth=2,3,4,5 \
         --preview="$preview_script switch {}" \
         --preview-window='right:55%:wrap'
 )" || exit 0
 
-target_session="${target_line#*$'\t'}"
+target_session="${target_line%%$'\t'*}"
 
 if [[ -n "$target_session" ]]; then
     exec tmux switch-client -t "$target_session"

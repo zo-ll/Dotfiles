@@ -14,21 +14,21 @@ while IFS= read -r popup_session; do
 done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
 
 mapfile -t target_lines < <(
-    tmux list-sessions -F '#{session_name}' | \
-    awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "*" : " "); print prefix "\t" $0; }' | \
+    tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
+    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); printf "%s\t%s\t%3s\t%3s\t%s\n", $1, marker, $3, $2, $1; }' | \
     fzf \
         --prompt='kill session: ' \
         --multi \
         --bind='tab:toggle,btab:toggle' \
         --delimiter=$'\t' \
-        --with-nth=1,2 \
+        --with-nth=2,3,4,5 \
         --preview="$preview_script kill {}" \
         --preview-window='right:55%:wrap'
 ) || exit 0
 
 declare -a target_sessions=()
 for line in "${target_lines[@]}"; do
-    target_session="${line#*$'\t'}"
+    target_session="${line%%$'\t'*}"
     [[ -n "$target_session" ]] && target_sessions+=("$target_session")
 done
 
