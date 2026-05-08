@@ -21,6 +21,10 @@ normalize_session() {
     printf '%s\n' "$value"
 }
 
+print_kv() {
+    printf '%-16s %s\n' "$1" "$2"
+}
+
 show_live_session() {
     local session="$1"
     local clients popup_exists
@@ -37,9 +41,10 @@ show_live_session() {
         popup_exists='no'
     fi
 
-    printf 'Session: %s\n' "$session"
-    printf 'Attached clients: %s\n' "$clients"
-    printf 'Popup sibling: %s\n\n' "$popup_exists"
+    print_kv 'Session' "$session"
+    print_kv 'Attached' "$clients client(s)"
+    print_kv 'Popup sibling' "$popup_exists"
+    printf '\n'
 
     while IFS=$'\t' read -r window_index window_active window_name; do
         window_flag=' '
@@ -47,7 +52,7 @@ show_live_session() {
             window_flag='*'
         fi
 
-        printf '%s window %s:%s\n' "$window_flag" "$window_index" "$window_name"
+        printf '%s window %-3s %s\n' "$window_flag" "$window_index" "$window_name"
 
         while IFS=$'\t' read -r pane_index pane_active pane_command pane_path; do
             pane_flag=' '
@@ -55,7 +60,7 @@ show_live_session() {
                 pane_flag='*'
             fi
 
-            printf '  %s pane %s  %-12s %s\n' "$pane_flag" "$pane_index" "$pane_command" "$pane_path"
+            printf '  %s pane %-3s %-14s %s\n' "$pane_flag" "$pane_index" "$pane_command" "$pane_path"
         done < <(
             tmux list-panes -t "=$session:$window_index" \
                 -F '#{pane_index}'$'\t''#{pane_active}'$'\t''#{pane_current_command}'$'\t''#{pane_current_path}'
@@ -77,17 +82,23 @@ fi
 
 case "$mode" in
     switch)
-        printf 'Will switch client to session: %s\n\n' "$session"
+        print_kv 'Action' 'switch client'
+        print_kv 'Target' "$session"
+        printf '\n'
         show_live_session "$session"
         ;;
     kill)
-        printf 'Will kill session: %s\n' "$session"
-        printf 'Also kills popup sibling: %s_popup (if it exists)\n\n' "$session"
+        print_kv 'Action' 'kill session'
+        print_kv 'Target' "$session"
+        print_kv 'Also kills' "${session}_popup (if present)"
+        printf '\n'
         show_live_session "$session"
         ;;
     save)
-        printf 'Will save snapshot for session: %s\n' "$session"
-        printf 'Snapshot file: %s/%s.tmux-session\n\n' "$snapshot_dir" "$session"
+        print_kv 'Action' 'save snapshot'
+        print_kv 'Target' "$session"
+        print_kv 'Snapshot file' "$snapshot_dir/$session.tmux-session"
+        printf '\n'
         show_live_session "$session"
         ;;
     *)
