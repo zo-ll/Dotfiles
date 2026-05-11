@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+preview_script="$HOME/.config/tmux/scripts/tmux-session-preview"
+
+while IFS= read -r popup_session; do
+    base_session="${popup_session%_popup}"
+
+    if ! tmux has-session -t "=$base_session" 2>/dev/null; then
+        tmux kill-session -t "=$popup_session" 2>/dev/null || true
+    fi
+done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
+
+current_session="$(tmux display-message -p '#S')"
+
+target_line="$(
+    tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
+    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); printf "%s\t%s\t%s\t%3s\t%s\n", $1, marker, attached, $2, $1; }' | \
+    fzf \
+        --prompt='session: ' \
+        --layout=reverse-list \
+        --border \
+        --delimiter=$'\t' \
+        --with-nth=2,3,4,5 \
+        --preview="$preview_script switch {}" \
+        --preview-window='right:55%:border-left:wrap'
+)" || exit 0
+
+target_session="${target_line%%$'\t'*}"
+
+if [[ -n "$target_session" ]]; then
+    exec tmux switch-client -t "$target_session"
+fi
