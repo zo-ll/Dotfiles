@@ -15,7 +15,9 @@ done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
 
 mapfile -t target_lines < <(
     tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
-    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); printf "%s\t%s\t%3s\t%3s\t%s\n", $1, marker, $3, $2, $1; }' | \
+    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); sort_key = ($1 == current ? "0" : "1"); printf "%s\t%s\t%s\t%3s\t%3s\t%s\n", sort_key, $1, marker, $3, $2, $1; }' | \
+    sort -t$'\t' -k1,1 | \
+    cut -f2- | \
     fzf \
         --prompt='kill session: ' \
         --layout=reverse-list \
