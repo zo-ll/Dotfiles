@@ -68,7 +68,6 @@ mapfile -t target_snapshots < <(
     fzf \
         --prompt='delete snapshot: ' \
         --layout=reverse-list \
-        --border \
         $FZF_COLORS \
         --header='Delete Snapshot' --header-first \
         --multi \

@@ -23,7 +23,6 @@ target_line="$(
     fzf \
         --prompt='session: ' \
         --layout=reverse-list \
-        --border \
         $FZF_COLORS \
         --header='Switch Session' --header-first \
         --delimiter=$'\t' \

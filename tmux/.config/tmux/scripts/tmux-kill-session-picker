@@ -23,7 +23,6 @@ mapfile -t target_lines < <(
     fzf \
         --prompt='kill session: ' \
         --layout=reverse-list \
-        --border \
         $FZF_COLORS \
         --header='Kill Session' --header-first \
         --multi \

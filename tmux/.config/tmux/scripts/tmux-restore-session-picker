@@ -73,7 +73,6 @@ mapfile -t target_snapshots < <(
     fzf \
         --prompt='restore session: ' \
         --layout=reverse-list \
-        --border \
         $FZF_COLORS \
         --header='Restore Session' --header-first \
         --multi \
