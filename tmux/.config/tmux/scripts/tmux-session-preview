@@ -83,7 +83,6 @@ fi
 case "$mode" in
     switch)
         print_kv 'Action' 'switch client'
-        print_kv 'Target' "$session"
         printf '\n'
         show_live_session "$session"
         ;;
