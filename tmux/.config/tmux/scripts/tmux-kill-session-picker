@@ -17,18 +17,19 @@ done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
 
 mapfile -t target_lines < <(
     tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
-    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); sort_key = ($1 == current ? "0" : "1"); printf "%s\t%s\t%s\t%s\t%3s\t%s\n", sort_key, $1, marker, attached, $2, $1; }' | \
+    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); sort_key = ($1 == current ? "0" : "1"); printf "%s\t%s\t%-1s  %-8s  %3s  %s\n", sort_key, $1, marker, attached, $2, $1; }' | \
     sort -t$'\t' -k1,1 | \
     cut -f2- | \
     fzf \
         --prompt='kill session: ' \
         --layout=reverse-list \
         $FZF_COLORS \
+        $FZF_OPTS \
         --header='Kill Session' --header-first \
         --multi \
         --bind='tab:toggle,btab:toggle' \
         --delimiter=$'\t' \
-        --with-nth=2,3,4,5 \
+        --with-nth=2 \
         --preview="$preview_script kill {}" \
         --preview-window='right:55%:border-left:wrap'
 ) || exit 0

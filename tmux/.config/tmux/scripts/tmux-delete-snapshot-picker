@@ -69,6 +69,7 @@ mapfile -t target_snapshots < <(
         --prompt='delete snapshot: ' \
         --layout=reverse-list \
         $FZF_COLORS \
+        $FZF_OPTS \
         --header='Delete Snapshot' --header-first \
         --multi \
         --bind='tab:toggle,btab:toggle' \

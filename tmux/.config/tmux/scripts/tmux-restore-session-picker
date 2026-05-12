@@ -74,6 +74,7 @@ mapfile -t target_snapshots < <(
         --prompt='restore session: ' \
         --layout=reverse-list \
         $FZF_COLORS \
+        $FZF_OPTS \
         --header='Restore Session' --header-first \
         --multi \
         --bind='tab:toggle,btab:toggle' \

@@ -9,14 +9,15 @@ preview_script="$HOME/.config/tmux/scripts/tmux-session-preview"
 
 target_line="$(
     tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
-    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); printf "%s\t%s\t%s\t%3s\t%s\n", $1, marker, attached, $2, $1; }' | \
+    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); printf "%s\t%-1s  %-8s  %3s  %s\n", $1, marker, attached, $2, $1; }' | \
     fzf \
         --prompt='save session: ' \
         --layout=reverse-list \
         $FZF_COLORS \
+        $FZF_OPTS \
         --header='Save Session Snapshot' --header-first \
         --delimiter=$'\t' \
-        --with-nth=2,3,4,5 \
+        --with-nth=2 \
         --preview="$preview_script save {}" \
         --preview-window='right:55%:border-left:wrap'
 )" || exit 0
