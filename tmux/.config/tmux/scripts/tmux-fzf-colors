@@ -2,5 +2,5 @@
 # Source this file then use $FZF_COLORS and $FZF_OPTS in fzf invocations
 
 FZF_COLORS='--color=bg+:#2a4a3e,fg+:#ffffff,hl:#50fa7b,hl+:#69ff94,pointer:#50fa7b,marker:#50fa7b,border:#ffffff,prompt:#50fa7b,info:#888888,header:#50fa7b'
-FZF_OPTS='--no-border --no-separator --info=hidden --margin=0 --padding=0'
+FZF_OPTS='--no-border --no-separator --info=hidden --margin=0 --padding=2,4,2,4'
 FZF_SEP=$'\x1f'
