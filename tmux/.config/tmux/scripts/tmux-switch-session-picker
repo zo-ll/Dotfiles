@@ -14,24 +14,25 @@ while IFS= read -r popup_session; do
 done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
 
 current_session="$(tmux display-message -p '#S')"
+sep="$FZF_SEP"
 
 target_line="$(
     tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
-    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); sort_key = ($1 == current ? "0" : "1"); printf "%s\t%s\t%-1s  %-8s  %3s  %s\n", sort_key, $1, marker, attached, $2, $1; }' | \
-    sort -t$'\t' -k1,1 | \
-    cut -f2- | \
+    awk -F $'\t' -v current="$current_session" -v sep="$sep" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); sort_key = ($1 == current ? "0" : "1"); printf "%s%s%s%s%-1s  %-8s  %3s  %s\n", sort_key, sep, $1, sep, marker, attached, $2, $1; }' | \
+    sort -t"$sep" -k1,1 | \
+    cut -d"$sep" -f2- | \
     fzf \
         --prompt='session: ' \
         --layout=reverse-list \
         $FZF_COLORS \
         $FZF_OPTS \
-        --delimiter=$'\t' \
+        --delimiter="$sep" \
         --with-nth=2 \
-        --preview="$preview_script switch {}" \
+        --preview="$preview_script switch {1}" \
         --preview-window='right:55%:border-left:wrap'
 )" || exit 0
 
-target_session="${target_line%%$'\t'*}"
+IFS="$sep" read -r target_session _ <<< "$target_line"
 
 if [[ -n "$target_session" ]]; then
     exec tmux switch-client -t "$target_session"
