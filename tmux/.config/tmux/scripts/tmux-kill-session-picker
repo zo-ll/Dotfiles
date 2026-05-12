@@ -32,7 +32,7 @@ mapfile -t target_lines < <(
         --delimiter="$sep" \
         --with-nth=2 \
         --preview="$preview_script kill {1}" \
-        --preview-window='right:55%:border-left:wrap'
+        --preview-window='right:55%,border-rounded,wrap'
 ) || exit 0
 
 declare -a target_sessions=()

@@ -29,7 +29,7 @@ target_line="$(
         --delimiter="$sep" \
         --with-nth=2 \
         --preview="$preview_script switch {1}" \
-        --preview-window='right:55%:border-left:wrap'
+        --preview-window='right:55%,border-rounded,wrap'
 )" || exit 0
 
 IFS="$sep" read -r target_session _ <<< "$target_line"

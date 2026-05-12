@@ -74,7 +74,7 @@ mapfile -t target_snapshots < <(
         --multi \
         --bind='tab:toggle,btab:toggle' \
         --preview="$0 --preview {}" \
-        --preview-window='right:55%:border-left:wrap'
+        --preview-window='right:55%,border-rounded,wrap'
 ) || exit 0
 
 if [[ ${#target_snapshots[@]} -eq 0 ]]; then
