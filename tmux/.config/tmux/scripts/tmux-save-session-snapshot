@@ -1,19 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$HOME/.config/tmux/scripts/tmux-fzf-colors"
+
 snapshot_dir="$HOME/.config/tmux/snapshots"
 current_session="$(tmux display-message -p '#S')"
+preview_script="$HOME/.config/tmux/scripts/tmux-session-preview"
 
-target_session="$(
-    tmux list-sessions -F '#{session_name}' | \
-    awk -v current="$current_session" '!/_popup$/ { prefix = ($0 == current ? "* " : "  "); print prefix $0; }' | \
+target_line="$(
+    tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
+    awk -F $'\t' -v current="$current_session" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); printf "%s\t%s\t%s\t%3s\t%s\n", $1, marker, attached, $2, $1; }' | \
     fzf \
         --prompt='save session: ' \
-        --multi \
-        --bind='tab:toggle,btab:toggle' | \
-    sed 's/^..//' | \
-    head -n1
+        --layout=reverse-list \
+        --border \
+        $FZF_COLORS \
+        --header='Save Session Snapshot' --header-first \
+        --delimiter=$'\t' \
+        --with-nth=2,3,4,5 \
+        --preview="$preview_script save {}" \
+        --preview-window='right:55%:border-left:wrap'
 )" || exit 0
+
+target_session="${target_line%%$'\t'*}"
 
 if [[ -z "$target_session" ]]; then
     exit 0

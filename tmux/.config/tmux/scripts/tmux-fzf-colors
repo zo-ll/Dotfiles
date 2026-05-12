@@ -1,0 +1,4 @@
+# Shared fzf color scheme for all tmux picker scripts
+# Source this file then use $FZF_COLORS in fzf invocations
+
+FZF_COLORS='--color=bg+:#2a4a3e,fg+:#ffffff,hl:#50fa7b,hl+:#69ff94,pointer:#50fa7b,marker:#50fa7b,border:#50fa7b,prompt:#50fa7b,info:#888888,header:#50fa7b'
