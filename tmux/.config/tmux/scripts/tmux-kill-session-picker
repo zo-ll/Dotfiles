@@ -18,7 +18,7 @@ done < <(tmux list-sessions -F '#{session_name}' | awk '/_popup$/')
 
 mapfile -t target_lines < <(
     tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
-    awk -F $'\t' -v current="$current_session" -v sep="$sep" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); sort_key = ($1 == current ? "0" : "1"); printf "%s%s%s%s%-1s  %-8s  %3s\n", sort_key, sep, $1, sep, marker, attached, $2; }' | \
+    awk -F $'\t' -v current="$current_session" -v sep="$sep" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); sort_key = ($1 == current ? "0" : "1"); printf "%s%s%s%s%-1s  %-8s  %3s  %s\n", sort_key, sep, $1, sep, marker, attached, $2, $1; }' | \
     sort -t"$sep" -k1,1 | \
     cut -d"$sep" -f2- | \
     env -u FZF_DEFAULT_OPTS fzf \
