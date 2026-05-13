@@ -30,7 +30,6 @@ show_preview() {
                 session_name="$(decode_b64 "$field1")"
                 print_kv 'Action' 'restore snapshot'
                 print_kv 'Snapshot' "$snapshot_name"
-                print_kv 'Target' "$session_name"
                 if tmux has-session -t "=$session_name" 2>/dev/null; then
                     print_kv 'Result' 'replace existing live session'
                 else
@@ -75,7 +74,6 @@ mapfile -t target_snapshots < <(
         --layout=reverse-list \
         $FZF_COLORS \
         $FZF_OPTS \
-        --header='Restore Session' --header-first \
         --multi \
         --bind='tab:toggle,btab:toggle' \
         --preview="$0 --preview {}" \
