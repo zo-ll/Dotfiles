@@ -16,7 +16,6 @@ target_line="$(
         --layout=reverse-list \
         $FZF_COLORS \
         $FZF_OPTS \
-        --header='Save Session Snapshot' --header-first \
         --delimiter="$sep" \
         --with-nth=2 \
         --preview="$preview_script save {1}" \

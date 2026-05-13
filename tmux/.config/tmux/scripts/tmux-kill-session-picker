@@ -26,7 +26,6 @@ mapfile -t target_lines < <(
         --layout=reverse-list \
         $FZF_COLORS \
         $FZF_OPTS \
-        --header='Kill Session' --header-first \
         --multi \
         --bind='tab:toggle,btab:toggle' \
         --delimiter="$sep" \
