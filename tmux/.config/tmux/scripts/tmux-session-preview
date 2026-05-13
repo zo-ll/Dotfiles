@@ -88,14 +88,12 @@ case "$mode" in
         ;;
     kill)
         print_kv 'Action' 'kill session'
-        print_kv 'Target' "$session"
         print_kv 'Also kills' "${session}_popup (if present)"
         printf '\n'
         show_live_session "$session"
         ;;
     save)
         print_kv 'Action' 'save snapshot'
-        print_kv 'Target' "$session"
         print_kv 'Snapshot file' "$snapshot_dir/$session.tmux-session"
         printf '\n'
         show_live_session "$session"

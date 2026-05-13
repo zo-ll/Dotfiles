@@ -10,7 +10,7 @@ sep="$FZF_SEP"
 
 target_line="$(
     tmux list-sessions -F '#{session_name}'$'\t''#{session_windows}'$'\t''#{session_attached}' | \
-    awk -F $'\t' -v current="$current_session" -v sep="$sep" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); printf "%s%s%-1s  %-8s  %3s  %s\n", $1, sep, marker, attached, $2, $1; }' | \
+    awk -F $'\t' -v current="$current_session" -v sep="$sep" '!/_popup$/ { marker = ($1 == current ? "*" : " "); attached = ($3 == "1" ? "attached" : "detached"); printf "%s%s%-1s  %-8s  %3s\n", $1, sep, marker, attached, $2; }' | \
     env -u FZF_DEFAULT_OPTS fzf \
         --prompt='save session: ' \
         --layout=reverse-list \
