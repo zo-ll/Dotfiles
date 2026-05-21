@@ -1,0 +1,41 @@
+#!/bin/bash
+# tmux-update: check for newer tmux release, build & install if found
+# Deps: curl, gcc, make, autoconf, automake, pkg-config, bison
+#        libevent-dev libncursesw6-dev
+
+set -euo pipefail
+
+INSTALLED="$(tmux -V 2>/dev/null | awk '{print $2}')" || INSTALLED="none"
+echo "installed: $INSTALLED"
+
+LATEST="$(curl -sfL https://api.github.com/repos/tmux/tmux/releases/latest \
+  | awk -F'"' '/"tag_name"/{print $4}')"
+echo "latest:    $LATEST"
+
+[ -z "$LATEST" ] && { echo "failed to fetch latest version"; exit 1; }
+
+# Strip leading 'v' or just compare strings
+if [ "$INSTALLED" = "$LATEST" ]; then
+  echo "already up-to-date"
+  exit 0
+fi
+
+VER="${LATEST#v}"
+TARBALL="https://github.com/tmux/tmux/releases/download/${LATEST}/tmux-${VER}.tar.gz"
+BUILD="/tmp/tmux-build"
+
+rm -rf "$BUILD"
+mkdir -p "$BUILD"
+cd "$BUILD"
+
+echo "downloading $TARBALL ..."
+curl -sfL "$TARBALL" | tar xz --strip-components=1
+
+echo "building ..."
+./configure --quiet
+make -j"$(nproc)" --quiet
+
+echo "installing ..."
+sudo make install
+
+echo "done: $(tmux -V)"
