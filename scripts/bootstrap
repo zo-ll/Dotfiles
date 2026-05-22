@@ -6,7 +6,6 @@ set -euo pipefail
 # ── Helpers ───────────────────────────────────────────────────────────────
 info()  { printf "\033[34m→\033[0m %s\n" "$1"; }
 ok()    { printf "\033[32m✓\033[0m %s\n" "$1"; }
-err()   { printf "\033[31m✗\033[0m %s\n" "$1"; }
 
 # ── SSH keys ──────────────────────────────────────────────────────────────
 generate_ssh_keys() {
@@ -33,12 +32,29 @@ generate_ssh_keys() {
         fi
     done
 
-    # Start agent and add all keys
+    # Write SSH config
+    if [ ! -f "$HOME/.ssh/config" ]; then
+        cat > "$HOME/.ssh/config" << 'CONFIG'
+Host gh
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/gh
+
+Host vps
+    HostName YOUR_VPS_IP
+    User root
+    IdentityFile ~/.ssh/vps
+CONFIG
+        chmod 600 "$HOME/.ssh/config"
+        ok "SSH config written (~/.ssh/config) — edit YOUR_VPS_IP"
+    else
+        info "SSH config already exists, skipping"
+    fi
+
+    # Start agent and add keys
     eval "$(ssh-agent -s)" >/dev/null 2>&1
     for f in "$HOME/.ssh/vps" "$HOME/.ssh/gh"; do
-        if [ -f "$f" ]; then
-            ssh-add "$f" >/dev/null 2>&1
-        fi
+        [ -f "$f" ] && ssh-add "$f" >/dev/null 2>&1
     done
     ok "SSH agent started, keys added"
 
@@ -54,22 +70,23 @@ generate_ssh_keys() {
         fi
     done
     echo "  └──────────────────────────────────────────────────────┘"
+
+    # Remind to add gh key to GitHub
+    echo "  Add ~/.ssh/gh.pub to https://github.com/settings/keys"
+    echo "  Then: ssh -T gh"
     echo ""
 }
 
 # ── Base packages ────────────────────────────────────────────────────────
 install_base() {
-    local pkgs=(
-        tmux neovim git curl gh fzf ripgrep fd-find
-        build-essential gcc make
-    )
+    local pkgs=(tmux neovim git curl gh)
 
     sudo apt update >/dev/null 2>&1
     sudo apt install -y "${pkgs[@]}" >/dev/null 2>&1
-    ok "Base packages installed"
+    ok "Base packages installed (tmux, neovim, git, curl, gh)"
 }
 
-# ── Dotfiles ──────────────────────────────────────────────────────────────
+# ── Dotfiles (tmux only) ─────────────────────────────────────────────────
 install_dotfiles() {
     if [ -d "$HOME/.config-repo" ]; then
         info "Dotfiles already cloned, pulling latest"
@@ -79,61 +96,19 @@ install_dotfiles() {
         ok "Dotfiles cloned"
     fi
 
-    # Symlink configs
-    local configs="tmux nvim alacritty niri waybar wofi mako polybar rofi"
-    for dir in $configs; do
-        src="$HOME/.config-repo/$dir/.config/$dir"
-        dst="$HOME/.config/$dir"
-        if [ -d "$src" ]; then
-            mkdir -p "$(dirname "$dst")"
-            ln -sfT "$src" "$dst"
-        fi
-    done
+    # Symlink tmux config only
+    local src="$HOME/.config-repo/tmux/.config/tmux"
+    local dst="$HOME/.config/tmux"
+    if [ -d "$src" ]; then
+        mkdir -p "$(dirname "$dst")"
+        ln -sfT "$src" "$dst"
+        ok "tmux config linked"
+    fi
 
-    # Link scripts
+    # Link bootstrap script itself to ~/.local/bin
     mkdir -p "$HOME/.local/bin"
-    for s in "$HOME/.config-repo/scripts/"*; do
-        ln -sf "$s" "$HOME/.local/bin/$(basename "$s")"
-    done
-
-    ok "Dotfiles symlinked"
-}
-
-# ── Go toolchain ──────────────────────────────────────────────────────────
-install_go() {
-    if command -v go &>/dev/null; then
-        info "Go already installed: $(go version)"
-        return
-    fi
-
-    local ver="1.24.0"
-    local tarball="go$ver.linux-amd64.tar.gz"
-
-    curl -fsSLO "https://go.dev/dl/$tarball"
-    sudo rm -rf /usr/local/go
-    sudo tar -C /usr/local -xzf "$tarball"
-    rm "$tarball"
-
-    # Add to PATH if not already present
-    grep -q '/usr/local/go/bin' "$HOME/.profile" 2>/dev/null ||
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> "$HOME/.profile"
-
-    ok "Go $ver installed"
-}
-
-# ── oi ────────────────────────────────────────────────────────────────────
-install_oi() {
-    if command -v oi &>/dev/null; then
-        info "oi already installed"
-        return
-    fi
-
-    gh repo clone zo-ll/oi /tmp/oi-build >/dev/null 2>&1
-    cd /tmp/oi-build
-    go build -o /tmp/oi-build/oi ./cmd/oi >/dev/null 2>&1
-    sudo mv /tmp/oi-build/oi /usr/local/bin/oi
-    rm -rf /tmp/oi-build
-    ok "oi installed"
+    ln -sf "$HOME/.config-repo/scripts/bootstrap" "$HOME/.local/bin/bootstrap"
+    ok "bootstrap linked to ~/.local/bin/bootstrap"
 }
 
 # ── Run ───────────────────────────────────────────────────────────────────
@@ -147,11 +122,14 @@ main() {
     generate_ssh_keys
     install_base
     install_dotfiles
-    install_go
-    install_oi
 
     echo ""
-    ok "Bootstrap complete. Restart your shell or source ~/.profile"
+    ok "Bootstrap complete."
+    echo ""
+    echo "  Next steps:"
+    echo "    tmux          # start tmux (config auto-loaded)"
+    echo "    ssh -T gh     # test GitHub SSH access"
+    echo "    gh auth login # auth GitHub CLI"
     echo ""
 }
 
