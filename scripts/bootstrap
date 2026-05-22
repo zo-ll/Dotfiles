@@ -1,0 +1,158 @@
+#!/bin/bash
+# bootstrap — set up a new machine from zero
+# Usage: curl -fsSL https://raw.githubusercontent.com/zo-ll/bootstrap/main/bootstrap.sh | bash
+set -euo pipefail
+
+# ── Helpers ───────────────────────────────────────────────────────────────
+info()  { printf "\033[34m→\033[0m %s\n" "$1"; }
+ok()    { printf "\033[32m✓\033[0m %s\n" "$1"; }
+err()   { printf "\033[31m✗\033[0m %s\n" "$1"; }
+
+# ── SSH keys ──────────────────────────────────────────────────────────────
+generate_ssh_keys() {
+    local email="${1:-andrea@zollini.dev}"
+
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+
+    local keys=(
+        "vps:$email"
+        "gh:$email"
+    )
+
+    for entry in "${keys[@]}"; do
+        local name="${entry%%:*}"
+        local key_email="${entry##*:}"
+        local key="$HOME/.ssh/$name"
+
+        if [ -f "$key" ]; then
+            info "SSH key already exists: $key"
+        else
+            ssh-keygen -t ed25519 -C "$key_email" -f "$key" -N "" >/dev/null 2>&1
+            ok "SSH key generated: $key"
+        fi
+    done
+
+    # Start agent and add all keys
+    eval "$(ssh-agent -s)" >/dev/null 2>&1
+    for f in "$HOME/.ssh/vps" "$HOME/.ssh/gh"; do
+        if [ -f "$f" ]; then
+            ssh-add "$f" >/dev/null 2>&1
+        fi
+    done
+    ok "SSH agent started, keys added"
+
+    # Print public keys
+    echo ""
+    echo "  ┌─ Public keys ────────────────────────────────────────┐"
+    for f in "$HOME/.ssh/vps.pub" "$HOME/.ssh/gh.pub"; do
+        if [ -f "$f" ]; then
+            name="$(basename "$f" .pub)"
+            printf "  │ \033[1m%s\033[0m\n" "$name"
+            cat "$f" | sed 's/^/  │   /'
+            echo ""
+        fi
+    done
+    echo "  └──────────────────────────────────────────────────────┘"
+    echo ""
+}
+
+# ── Base packages ────────────────────────────────────────────────────────
+install_base() {
+    local pkgs=(
+        tmux neovim git curl gh fzf ripgrep fd-find
+        build-essential gcc make
+    )
+
+    sudo apt update >/dev/null 2>&1
+    sudo apt install -y "${pkgs[@]}" >/dev/null 2>&1
+    ok "Base packages installed"
+}
+
+# ── Dotfiles ──────────────────────────────────────────────────────────────
+install_dotfiles() {
+    if [ -d "$HOME/.config-repo" ]; then
+        info "Dotfiles already cloned, pulling latest"
+        git -C "$HOME/.config-repo" pull --rebase >/dev/null 2>&1
+    else
+        gh repo clone zo-ll/Dotfiles "$HOME/.config-repo" >/dev/null 2>&1
+        ok "Dotfiles cloned"
+    fi
+
+    # Symlink configs
+    local configs="tmux nvim alacritty niri waybar wofi mako polybar rofi"
+    for dir in $configs; do
+        src="$HOME/.config-repo/$dir/.config/$dir"
+        dst="$HOME/.config/$dir"
+        if [ -d "$src" ]; then
+            mkdir -p "$(dirname "$dst")"
+            ln -sfT "$src" "$dst"
+        fi
+    done
+
+    # Link scripts
+    mkdir -p "$HOME/.local/bin"
+    for s in "$HOME/.config-repo/scripts/"*; do
+        ln -sf "$s" "$HOME/.local/bin/$(basename "$s")"
+    done
+
+    ok "Dotfiles symlinked"
+}
+
+# ── Go toolchain ──────────────────────────────────────────────────────────
+install_go() {
+    if command -v go &>/dev/null; then
+        info "Go already installed: $(go version)"
+        return
+    fi
+
+    local ver="1.24.0"
+    local tarball="go$ver.linux-amd64.tar.gz"
+
+    curl -fsSLO "https://go.dev/dl/$tarball"
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf "$tarball"
+    rm "$tarball"
+
+    # Add to PATH if not already present
+    grep -q '/usr/local/go/bin' "$HOME/.profile" 2>/dev/null ||
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> "$HOME/.profile"
+
+    ok "Go $ver installed"
+}
+
+# ── oi ────────────────────────────────────────────────────────────────────
+install_oi() {
+    if command -v oi &>/dev/null; then
+        info "oi already installed"
+        return
+    fi
+
+    gh repo clone zo-ll/oi /tmp/oi-build >/dev/null 2>&1
+    cd /tmp/oi-build
+    go build -o /tmp/oi-build/oi ./cmd/oi >/dev/null 2>&1
+    sudo mv /tmp/oi-build/oi /usr/local/bin/oi
+    rm -rf /tmp/oi-build
+    ok "oi installed"
+}
+
+# ── Run ───────────────────────────────────────────────────────────────────
+main() {
+    echo ""
+    echo "  ╔═══════════════════════════════════════════╗"
+    echo "  ║          machine bootstrap                ║"
+    echo "  ╚═══════════════════════════════════════════╝"
+    echo ""
+
+    generate_ssh_keys
+    install_base
+    install_dotfiles
+    install_go
+    install_oi
+
+    echo ""
+    ok "Bootstrap complete. Restart your shell or source ~/.profile"
+    echo ""
+}
+
+main "$@"
