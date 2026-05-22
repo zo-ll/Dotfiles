@@ -96,19 +96,14 @@ install_dotfiles() {
         ok "Dotfiles cloned"
     fi
 
-    # Symlink tmux config only
-    local src="$HOME/.config-repo/tmux/.config/tmux"
-    local dst="$HOME/.config/tmux"
-    if [ -d "$src" ]; then
-        mkdir -p "$(dirname "$dst")"
-        ln -sfT "$src" "$dst"
-        ok "tmux config linked"
-    fi
+    # Link packages with stow.sh
+    bash "$HOME/.config-repo/scripts/stow.sh" tmux
 
     # Link bootstrap script itself to ~/.local/bin
     mkdir -p "$HOME/.local/bin"
     ln -sf "$HOME/.config-repo/scripts/bootstrap" "$HOME/.local/bin/bootstrap"
-    ok "bootstrap linked to ~/.local/bin/bootstrap"
+    ln -sf "$HOME/.config-repo/scripts/stow.sh" "$HOME/.local/bin/stow"
+    ok "bootstrap + stow linked to ~/.local/bin"
 }
 
 # ── Run ───────────────────────────────────────────────────────────────────
