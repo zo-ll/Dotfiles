@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# tmux-gruvbox — theme the tmux status bar with gruvbox.
+#
+# Self-contained adaptation of https://github.com/egel/tmux-gruvbox
+# (dark / dark256 / light / light256). No plugin manager, no extra files.
+#
+# Wire it up in tmux.conf *after* setting the options, then call it:
+#
+#   set -g @tmux-gruvbox 'dark256'
+#   run-shell '~/.config/tmux/scripts/tmux-gruvbox'
+#
+# Options (all optional):
+#   @tmux-gruvbox                 dark256 | dark | light256 | light   (dark256)
+#   @tmux-gruvbox-statusbar-alpha true | false                        (false)
+#   @tmux-gruvbox-pane-borders    true | false                        (false)
+#   @tmux-gruvbox-left-status-a   '#S'
+#   @tmux-gruvbox-right-status-x  '#(git -C #{pane_current_path} branch --show-current 2>/dev/null)'
+#   @tmux-gruvbox-right-status-y  ''
+#   @tmux-gruvbox-right-status-z  '#h'
+#
+set -euo pipefail
+
+TMUX_BIN="${TMUX_BIN:-tmux}"
+
+get_opt() {
+  local value
+  value="$("$TMUX_BIN" show-option -gqv "$1" 2>/dev/null || true)"
+  printf '%s' "${value:-$2}"
+}
+
+theme="$(get_opt @tmux-gruvbox dark256)"
+alpha="$(get_opt @tmux-gruvbox-statusbar-alpha false)"
+pane_borders="$(get_opt @tmux-gruvbox-pane-borders false)"
+left_a="$(get_opt @tmux-gruvbox-left-status-a '#S')"
+right_x="$(get_opt @tmux-gruvbox-right-status-x '#(git -C #{pane_current_path} branch --show-current 2>/dev/null)')"
+right_y="$(get_opt @tmux-gruvbox-right-status-y '')"
+right_z="$(get_opt @tmux-gruvbox-right-status-z '#h')"
+
+# ── Powerline glyphs (require a Nerd Font) ───────────────────────────────────
+G_R=$'\ue0b0' # solid right arrow
+G_L=$'\ue0b2' # solid left arrow
+G_T=$'\ue0b1' # thin separator
+
+CMDS=()
+so() { CMDS+=("set-option" "-gq" "$1" "$2" ";"); }
+swo() { CMDS+=("set-window-option" "-gq" "$1" "$2" ";"); }
+
+# ── Palette ──────────────────────────────────────────────────────────────────
+case "$theme" in
+dark)
+  col_bg='#282828'
+  col_bg1='#3c3836'
+  col_bg2='#504945'
+  col_bg3='#665c54'
+  col_fg1='#ebdbb2'
+  col_fg2='#d5c4a1'
+  col_fg3='#bdae93'
+  col_fg4='#a89984'
+  col_yellow='#d79921'
+  col_yellow2='#fabd2f'
+  col_red2='#fb4934'
+  col_blue2='#83a598'
+  layout=standard
+  ;;
+light)
+  col_bg='#fbf1c7'
+  col_bg1='#ebdbb2'
+  col_bg2='#d5c4a1'
+  col_bg3='#bdae93'
+  col_fg1='#3c3836'
+  col_fg2='#504945'
+  col_fg3='#665c54'
+  col_fg4='#7c6f64'
+  col_yellow='#d79921'
+  col_yellow2='#b57614'
+  col_red2='#9d0006'
+  col_blue2='#076678'
+  layout=standard
+  ;;
+light256)
+  col_bg='colour229'
+  col_bg1='colour223'
+  col_bg2='colour250'
+  col_bg3='colour248'
+  col_fg1='colour237'
+  col_fg2='colour239'
+  col_fg3='colour241'
+  col_fg4='colour243'
+  col_yellow='colour172'
+  col_yellow2='colour136'
+  col_red2='colour88'
+  col_blue2='colour24'
+  layout=light256
+  ;;
+dark256 | *)
+  col_bg='colour235'
+  col_bg1='colour237'
+  col_bg2='colour239'
+  col_bg3='colour241'
+  col_fg1='colour223'
+  col_fg2='colour250'
+  col_fg3='colour248'
+  col_fg4='colour246'
+  col_yellow='colour172'
+  col_yellow2='colour214'
+  col_red2='colour167'
+  col_blue2='colour109'
+  layout=standard
+  ;;
+esac
+
+status_bg="$col_bg1"
+if [[ "$layout" == light256 ]]; then status_bg="$col_bg2"; fi
+if [[ "$alpha" == true ]]; then status_bg=default; fi
+
+# ── Shared styling ───────────────────────────────────────────────────────────
+window_bg="$col_yellow2"
+if [[ "$alpha" == true ]]; then window_bg=default; fi
+
+so status on
+so status-style "bg=${status_bg},fg=${col_fg1}"
+swo window-status-style "bg=${window_bg},fg=${col_bg1}"
+swo window-status-current-style "bg=${window_bg},fg=${col_bg1}"
+swo window-status-activity-style "bg=${col_bg1},fg=${col_fg3}"
+swo window-status-bell-style "bg=${col_red2},fg=${col_bg}"
+so message-style "bg=${col_bg2},fg=${col_fg1}"
+so message-command-style "bg=${col_fg3},fg=${col_bg1}"
+so display-panes-active-colour "$col_fg2"
+so display-panes-colour "$col_bg1"
+swo clock-mode-colour "$col_blue2"
+so status-justify left
+so status-left-style none
+so status-left-length 80
+so status-right-style none
+so status-right-length 80
+swo window-status-separator ""
+if [[ "$pane_borders" == true ]]; then
+  so pane-active-border-style "fg=${col_fg2}"
+  so pane-border-style "fg=${col_bg1}"
+fi
+
+# ── Layout ───────────────────────────────────────────────────────────────────
+if [[ "$layout" == light256 ]]; then
+  so status-left "#[bg=${col_fg2},fg=${col_bg1}] ${left_a} #[bg=${col_bg2},fg=${col_fg2},nobold,noitalics,nounderscore]${G_R}"
+
+  right="#[bg=${status_bg},fg=${col_fg4},nobold,nounderscore,noitalics]${G_L}#[bg=${col_fg4},fg=${col_bg1}] ${right_x}"
+  if [[ -n "$right_y" ]]; then right+=" ${G_T} ${right_y}"; fi
+  right+=" #[bg=${col_fg4},fg=${col_fg2},nobold,noitalics,nounderscore]${G_L}#[bg=${col_fg2},fg=${col_bg1}] ${right_z}"
+  so status-right "$right"
+
+  swo window-status-current-format "#[bg=${col_yellow},fg=${col_bg2},nobold,noitalics,nounderscore]${G_R}#[bg=${col_yellow},fg=${col_fg1}] #I ${G_T}#[bg=${col_yellow},fg=${col_fg1},bold] #W#{?window_zoomed_flag,*Z,} #{?window_end_flag,#[bg=${status_bg}],#[bg=${col_bg2}]}#[fg=${col_yellow},nobold,noitalics,nounderscore]${G_R}"
+  swo window-status-format "#[bg=${col_bg3},fg=${col_bg2},noitalics]${G_R}#[bg=${col_bg3},fg=${col_fg2}] #I ${G_T}#[bg=${col_bg3},fg=${col_fg2}] #W #{?window_end_flag,#[bg=${status_bg}],#[bg=${col_bg2}]}#[fg=${col_bg3},noitalics]${G_R}"
+else
+  so status-left "#[bg=${col_bg3},fg=${col_fg3}] ${left_a} #[bg=${col_bg1},fg=${col_bg3},nobold,noitalics,nounderscore]${G_R}"
+
+  right="#[bg=${status_bg},fg=${col_bg2},nobold,nounderscore,noitalics]${G_L}#[bg=${col_bg2},fg=${col_fg4}] ${right_x}"
+  if [[ -n "$right_y" ]]; then right+=" ${G_T} ${right_y}"; fi
+  right+=" #[bg=${col_bg2},fg=${col_fg3},nobold,noitalics,nounderscore]${G_L}#[bg=${col_fg3},fg=${col_bg1}] ${right_z}"
+  so status-right "$right"
+
+  swo window-status-current-format "#[bg=${col_yellow2},fg=${col_bg1},nobold,noitalics,nounderscore]${G_R}#[bg=${col_yellow2},fg=${col_bg2}] #I ${G_T}#[bg=${col_yellow2},fg=${col_bg2},bold] #W#{?window_zoomed_flag,*Z,} #{?window_end_flag,#[bg=${status_bg}],#[bg=${col_bg1}]}#[fg=${col_yellow2},nobold,noitalics,nounderscore]${G_R}"
+  swo window-status-format "#[bg=${col_bg2},fg=${col_bg1},noitalics]${G_R}#[bg=${col_bg2},fg=${col_fg1}] #I ${G_T}#[bg=${col_bg2},fg=${col_fg1}] #W #{?window_end_flag,#[bg=${status_bg}],#[bg=${col_bg1}]}#[fg=${col_bg2},noitalics]${G_R}"
+fi
+
+"$TMUX_BIN" "${CMDS[@]}"
